@@ -1,0 +1,68 @@
+# --- DJI Thermal SDK: never commit (DJI license) ---
+/sdk/*
+!sdk/README.md
+*.dll
+*.so
+*.so.*
+*.dylib
+libv_list.ini
+
+# --- Field data: never commit raw flights ---
+/data/
+*.JPG
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+*.MP4
+*.mp4
+*.SRT
+
+# --- Outputs ---
+/out/
+/reports/
+*.geojson
+*.csv
+
+# Local working knowledge and private assets belong outside this repository.
+/State.md
+/knowledge basis/
+/references/
+/private/
+*.xlsx
+*.xls
+*.dwg
+*.dxf
+*.kml
+*.kmz
+*.shp
+*.shx
+*.dbf
+*.gpkg
+*.npy
+*.npz
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Secrets ---
+.env
+*.key
