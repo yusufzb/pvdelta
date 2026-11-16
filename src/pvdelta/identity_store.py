@@ -24,6 +24,15 @@ def observation_binding(group):
     return hashlib.sha256(json.dumps(fields, sort_keys=True).encode()).hexdigest()
 
 
+def source_file_sha256(path: Path) -> str:
+    """Hash original image bytes with bounded memory on Python 3.10 and later."""
+    digest = hashlib.sha256()
+    with path.open('rb') as source:
+        for block in iter(lambda: source.read(1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def _validate_current(database, group):
     from pvdelta.panel_review import panel_groups
     from pvdelta.store import connect_store

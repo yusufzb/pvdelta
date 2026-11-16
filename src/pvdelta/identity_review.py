@@ -6,7 +6,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from pvdelta.identity_store import observation_binding
+from pvdelta.identity_store import observation_binding, source_file_sha256
 from pvdelta.panel_review import panel_groups
 from pvdelta.region_polygon import simple_polygon_mask
 from pvdelta.store import connect_store
@@ -67,8 +67,7 @@ def validate_decisions(database, pack, document):
                                    (row['thermal_path'], row['thermal_hash'])]:
             path = Path(row['source_root']) / relative
             if (path, expected) not in verified_sources:
-                with path.open('rb') as source:
-                    actual = hashlib.file_digest(source, 'sha256').hexdigest()
+                actual = source_file_sha256(path)
                 if actual != expected:
                     raise ValueError('Original source file changed')
                 verified_sources.add((path, expected))

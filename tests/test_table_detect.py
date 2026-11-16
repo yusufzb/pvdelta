@@ -16,7 +16,7 @@ def _frame(values: np.ndarray) -> ThermalFrame:
         valid_mask=np.ones(values.shape, dtype=bool),
         width=values.shape[1],
         height=values.shape[0],
-        capture_time=dt.datetime(2026, 1, 1, tzinfo=dt.UTC),
+        capture_time=dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc),
     )
 
 

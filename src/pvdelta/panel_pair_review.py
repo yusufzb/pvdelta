@@ -7,7 +7,7 @@ import math
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pvdelta.identity_store import observation_binding
+from pvdelta.identity_store import observation_binding, source_file_sha256
 from pvdelta.panel_review import panel_groups
 from pvdelta.store import connect_store
 
@@ -83,8 +83,7 @@ def _verify_sources(database, proposal):
         frames.add(group['capture_id'])
         row = group['regions'][0]
         for field in ('thermal', 'rgb'):
-            with (Path(row['source_root'])/row[field+'_path']).open('rb') as source:
-                actual = hashlib.file_digest(source, 'sha256').hexdigest()
+            actual = source_file_sha256(Path(row['source_root']) / row[field+'_path'])
             if actual != row[field+'_hash']:
                 raise ValueError('Original source file changed; review rejected')
     if len(frames) != 2:
