@@ -11,14 +11,28 @@ local temperature differences within photovoltaic module regions. It presents
 the temperature, reference, image location and supporting evidence for each
 candidate in a local Streamlit dashboard. A plant inventory is optional.
 
-[Workflow](#workflow) · [Radiometric example](#radiometric-example) · [Run PV Delta](#run-pv-delta) · [Method notes](docs/method.md)
+[Field case](#field-case-debris-reported) · [Workflow](#workflow) · [Radiometric example](#radiometric-example) · [Run PV Delta](#run-pv-delta)
 
-<p align="center">
-  <img width="720" src="docs/assets/pv-array-thermal.png" alt="Real UAV thermal image showing rows of solar panels in a public research dataset">
-</p>
+## Field case · debris reported
 
-**Figure 1.** DJI Mavic 3T thermal image of PV module rows from the CERTH public
-dataset. This figure shows the scene as published. [Image credits and source](docs/assets/IMAGE-CREDITS.md)
+![Full thermal frame showing the marked A1 warm region near the module edge](docs/assets/field-debris-thermal.png)
+
+**Figure 1a.** Full Matrice 4T thermal view selected from PV Delta's Streamlit
+review. The white ring traces the 13 native candidate pixels. The red rectangle
+is a 6× display locator, and cyan shows the proposed module boundary.
+
+![Full supplied RGB view showing the A1 locator and reported debris at the edge of a solar module](docs/assets/field-debris-rgb.png)
+
+**Figure 1b.** Full supplied RGB view of the reported debris. The red locator
+is an approximate projection. Local cross-camera alignment did not pass the
+geometry check.
+
+| Region median | Local ΔT | Native support |
+| ---: | ---: | ---: |
+| 28.94 °C | +2.95 K | 13 pixels |
+
+ΔT is the median of the pixel-level differences against the fitted local
+background. The figure illustrates one reviewed thermal candidate. [Image credits and measurement notes](docs/assets/IMAGE-CREDITS.md)
 
 ## Workflow
 
@@ -51,6 +65,11 @@ panel IDs, rows, racks and strings. [Measurement profiles](docs/measurement-prof
 the native 640 × 512 SDK temperature grid with a 2nd–98th percentile display
 range. The line on the right uses the original decoded values from row 256.
 This figure demonstrates radiometric decoding. [Source, settings and reproduction](docs/assets/IMAGE-CREDITS.md)
+
+![Public DJI Mavic 3T thermal image showing rows of solar panels](docs/assets/pv-array-thermal.png)
+
+**Figure 3.** PV module rows captured by a DJI Mavic 3T in the CERTH public
+dataset. [Image credits and source](docs/assets/IMAGE-CREDITS.md)
 
 ## Validation and scope
 

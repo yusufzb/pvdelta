@@ -1,6 +1,17 @@
 # Image sources and reproduction
 
-## Figure 1 · Public UAV thermal image of PV modules
+## Figure 1 · PV Delta project flight
+
+Project-owned DJI Matrice 4T capture selected by the operator from the Streamlit
+review. The publishing export preserves the complete operator-supplied thermal
+(640 × 512) and RGB (1280 × 1280) views at their supplied pixel dimensions,
+with camera metadata removed. The SDK replay matched the saved native
+temperature hash. The white thermal ring is derived from exact saved region
+pixels. The red locator is
+enlarged for legibility. The RGB locator is approximate because the local edge
+alignment check did not pass. Debris is the operator's site observation.
+
+## Figure 3 · Public UAV thermal image of PV modules
 
 Panagiotis Christakakis, Eleftheria-Maria Pechlivani and Periklis Dimou (2025),
 *Thermal PV Panel Detection and Fault Detection Dataset for UAV-Based Inspection*.
@@ -13,7 +24,7 @@ Source JPEG SHA-256:
 
 The published PNG preserves the decoded 640 × 512 RGB pixels. It was re-encoded
 without the original metadata. The source is a processed research image, so
-Figure 1 has no temperature scale.
+Figure 3 has no temperature scale.
 
 ## Figure 2 · Temperature map and row profile
 
