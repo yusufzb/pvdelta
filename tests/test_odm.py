@@ -1,11 +1,17 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 duckdb = pytest.importorskip("duckdb")
 
 from pvdelta.odm import file_hash, native_environment, prepare_project, run_native
+
+
+@pytest.fixture(autouse=True)
+def available_disk_space(monkeypatch):
+    monkeypatch.setattr("pvdelta.odm.shutil.disk_usage", lambda path: SimpleNamespace(free=20 * 1024**3))
 
 
 def database(tmp_path, outside=False):
@@ -45,6 +51,14 @@ def test_pilot_copies_preserve_pairing_and_hashes_without_modifying_sources(tmp_
 def test_prepare_rejects_path_escape_before_writing_images(tmp_path):
     db, _ = database(tmp_path, outside=True)
     with pytest.raises(ValueError, match="out-of-root"):
+        prepare_project(db, "flight", tmp_path / "pilot", 3)
+    assert not (tmp_path / "pilot").exists()
+
+
+def test_prepare_rejects_insufficient_disk_space_before_copying(tmp_path, monkeypatch):
+    db, _ = database(tmp_path)
+    monkeypatch.setattr("pvdelta.odm.shutil.disk_usage", lambda path: SimpleNamespace(free=0))
+    with pytest.raises(ValueError, match="Insufficient free space"):
         prepare_project(db, "flight", tmp_path / "pilot", 3)
     assert not (tmp_path / "pilot").exists()
 
