@@ -1,0 +1,20 @@
+flowchart TD
+    sdk["SDK temperature grid · °C"] --> support["Partition finite target and background support"]
+    regions["Module geometry and source-bound surface labels"] --> support
+    support --> viable{"Sufficient usable support and fit?"}
+    viable -->|Yes| model["Fit robust local plane in native pixel coordinates"]
+    viable -->|No| unresolved["Unresolved measurement"]
+    model --> diff["Evaluate pixel residuals · K"]
+    diff --> components["Threshold and form four-connected components"]
+    components --> result["Region median · °C; median residual · K; exact pixels"]
+    result -.-> conditions{"Valid scoped irradiance and documented exponent?"}
+    conditions -->|Yes| norm["Optional irradiance-normalised ΔT · K"]
+    conditions -->|Unavailable| raw["Report measured ΔT"]
+    class sdk,regions input
+    class support,model,diff,components process
+    class viable,conditions decision
+    class unresolved,result,norm,raw output
+    classDef input fill:#d9f2ee,stroke:#17786e,color:#112e2b
+    classDef process fill:#e8eef8,stroke:#496684,color:#162b45
+    classDef decision fill:#fff1d2,stroke:#976529,color:#44301b
+    classDef output fill:#e7ebff,stroke:#6265a9,color:#28264e

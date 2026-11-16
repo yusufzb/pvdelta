@@ -1,119 +1,137 @@
 # PV Delta
 
-**Radiometric analysis of photovoltaic modules from UAV thermal imagery**
+**UAV radiometry and engineering review for photovoltaic inspections**
 
 [![CI](https://github.com/yusufzb/pvdelta/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufzb/pvdelta/actions/workflows/ci.yml)
 [![Research pilot](https://img.shields.io/badge/research%20pilot-v0.1.0.dev0-087f78)](https://github.com/yusufzb/pvdelta/tree/v0.1.0.dev0)
 [![MIT license](https://img.shields.io/badge/code%20license-MIT-475569)](LICENSE)
 
-PV Delta reads per-pixel temperatures from DJI radiometric JPEGs and measures
-local temperature differences within photovoltaic module regions. It presents
-the temperature, reference, image location and supporting evidence for each
-candidate in a local Streamlit dashboard. A plant inventory is optional.
+Aerial thermography makes it possible to screen many PV modules in one flight. The engineering challenge is to determine whether a warm region lies on a module, how much warmer it is than its local background, and what the paired images support. PV Delta plans capture geometry, reads native temperatures from DJI radiometric JPEGs, and presents traceable candidates for operator review. A plant inventory is optional.
 
-[Field case](#field-case-debris-reported) · [Workflow](#workflow) · [Detection method](docs/method.md) · [Radiometric example](#radiometric-example) · [Run PV Delta](#run-pv-delta)
+<img src="docs/assets/dashboard-mobile-review.png" alt="PV Delta mobile review of a marked warm spot on a solar module, with its paired RGB view below" width="590">
 
-## Field case · debris reported
+**Figure 1.** Actual Streamlit review of a Matrice 4T field candidate. The thermal view shows the candidate near a module edge. The paired RGB view provides surface context. [Full thermal and RGB evidence](docs/results.md#paired-field-observation)
 
-![Full thermal frame showing the marked A1 warm region near the module edge](docs/assets/field-debris-thermal.png)
-
-**Figure 1a.** Full Matrice 4T thermal view selected from PV Delta's Streamlit
-review. The white ring traces the 13 native candidate pixels. The red rectangle
-is a 6× display locator, and cyan shows the proposed module boundary.
-
-![Full supplied RGB view showing the A1 locator and reported debris at the edge of a solar module](docs/assets/field-debris-rgb.png)
-
-**Figure 1b.** Full supplied RGB view of the reported debris. The red locator
-is an approximate projection. Local cross-camera alignment did not pass the
-geometry check.
-
-| Region median | Local ΔT | Native support |
-| ---: | ---: | ---: |
-| 28.94 °C | +2.95 K | 13 pixels |
-
-ΔT is the median of the pixel-level differences against the fitted local
-background. The figure illustrates one reviewed thermal candidate. [Image credits and measurement notes](docs/assets/IMAGE-CREDITS.md)
-
-## Workflow
+## End-to-end workflow
 
 ```mermaid
 flowchart TD
-    thermal["Original DJI thermal R-JPEG"] --> decode["DJI Thermal SDK"]
-    decode --> grid["Native temperature grid"]
-    regions["Reviewed module regions or automatic proposals"] --> measure["Measure local ΔT within module regions"]
-    grid --> measure
-    measure --> review["Review thermal candidates in Streamlit"]
-    rgb["Paired RGB and capture metadata, when available"] -.-> review
-    review --> export["DuckDB inspection record and HTML, JSON, CSV exports"]
-    export -.-> match["Stage 2 · Optional match to plant inventory"]
-    inventory["CAD layout or panel register"] -.-> match
+    flight["Flight plan and field observations"] --> photos["Original radiometric JPEGs and optional RGB"]
+    photos --> index["Index and pair captured images"]
+    index --> sdk["Decode native temperatures with DJI SDK"]
+    sdk --> eligible{"Usable panel support?"}
+    eligible -->|Yes| measure["Fit local background and measure candidate regions"]
+    eligible -->|Unresolved evidence| queue["Unassigned thermal evidence"]
+    queue --> surface["Review boundaries or run a surface-assisted scan"]
+    surface -.->|Reassess with saved geometry| eligible
+    measure --> review["Review thermal, RGB and repeat-view evidence"]
+    review -->|OK / Not OK / Wait| store["Local DuckDB record and evidence export"]
+    store -.->|Optional Stage 2| registry["Reconcile with plant inventory"]
+    class flight,photos input
+    class index,sdk,measure,surface process
+    class eligible,review decision
+    class queue,store,registry output
+    classDef input fill:#d9f2ee,stroke:#17786e,color:#112e2b
+    classDef process fill:#e8eef8,stroke:#496684,color:#162b45
+    classDef decision fill:#fff1d2,stroke:#976529,color:#44301b
+    classDef output fill:#e7ebff,stroke:#6265a9,color:#28264e
 ```
 
-**Stage 1** measures temperature differences on the native DJI SDK grid. Within
-each eligible module interior, a robust local plane estimates the background.
-The detector thresholds the pixel-level temperature residuals and groups
-four-connected pixels into candidates. The reported ΔT is the median residual
-over the exact component. Display palette and box enlargement do not enter the
-calculation. The dashboard retains original image coordinates and shows
-geographic estimates when supporting geometry is available.
+The main path uses native SDK temperatures and local image geometry. Unresolved surface evidence can return to boundary review. Stage 2 adds optional matching to a plant register. [Editable workflow](docs/diagrams/end-to-end.mmd) · [Architecture and supporting diagrams](docs/diagrams/README.md)
+
+## Capabilities
+
+| Engineering question | What PV Delta provides |
+| --- | --- |
+| Can the thermal image resolve the inspection target? | Approximate footprint, thermal ground sampling, pixels per target feature, capture spacing and speed estimates for the planned geometry. |
+| Which pixels belong to the module? | Proposed or reviewed module boundaries, source-bound surface exclusions and a separate queue for unresolved thermal evidence. |
+| How large is the temperature difference? | Native DJI SDK readings, a robust module-local reference, exact candidate pixels and measured ΔT in kelvin. |
+| What supports the interpretation? | Paired thermal and RGB views, registration checks, repeat-view evidence where supported and operator decisions. |
+| What can be reviewed later? | A local DuckDB inspection record, source provenance and an exportable evidence bundle. |
+
+## Dashboard walkthrough
+
+**Basic** starts a scan, shows processing coverage and opens candidate review. Compare thermal and RGB evidence, inspect the measurement and record **OK**, **Not OK** or **Wait**. Use the original views and the stated registration quality when interpreting a mark.
+
+**Advanced** exposes flight planning, field observations, native scans, panel boundaries, unassigned evidence, RGB quality, mapping, panel review and export. The orthoview tab offers an experimental visual overview. The guide maps each tab to its inputs, method and outputs. [Illustrated operator guide](docs/user-guide.md)
+
+## Scientific basis
+
+At capture planning, the flat-plane approximation starts from camera-to-plane range $d$ and axis field of view $\theta$. The projected footprint along an axis is $2d\tan(\theta/2)$ before the axis-specific tilt correction. Dividing by the native thermal pixel count gives metres per pixel along that axis. The planner uses the coarser axis for minimum-feature estimates.
+
+Within eligible module support, the detector fits a robust local plane $B_i(x,y)$ to native temperatures. For an exact connected component $C$, it reports
 
 $$
 \Delta T_C = \operatorname{median}_{(x,y)\in C}\left[T(x,y)-B_i(x,y)\right].
 $$
 
-[Radiometric assumptions, equations and screening settings](docs/method.md)
+Here $T$ and $B_i$ are in °C and $\Delta T_C$ is in K. The exact pixel set, fitted background and camera settings determine the measurement. Display palettes and locator enlargement affect visual presentation. [Computational methodology](docs/methodology.md) · [Radiometric equations and field evidence](docs/method.md)
 
-**Stage 2** uses plant records to associate reviewed observations with physical
-panel IDs, rows, racks and strings. [Measurement profiles](docs/measurement-profiles.md) · [Evidence export](docs/inspection-export.md)
+## Architecture
 
-## Radiometric example
+Streamlit and the CLI share the scan and analysis code. The decoder binds measurements to an SDK profile, geometry supplies eligible support, and DuckDB connects the result to source views and operator review. Export bundles preserve the measurement context. [System architecture](docs/architecture.md) · [Scientific computation, data flow and navigation](docs/diagrams/README.md)
 
-![Measured temperature map decoded from a real DJI Matrice 4T R-JPEG and temperature profile through native row 256](docs/assets/native-temperature-m4t.png)
+## Engineering results
 
-**Figure 2.** Real Matrice 4T sample from STR Drones. The left panel visualizes
-the native 640 × 512 SDK temperature grid with a 2nd–98th percentile display
-range. The line on the right uses the original decoded values from row 256.
-This figure demonstrates radiometric decoding. [Source, settings and reproduction](docs/assets/IMAGE-CREDITS.md)
+| Evidence | Observed result | Scope |
+| --- | ---: | --- |
+| Matrice 4T field candidate in Figure 1 | 28.94 °C region median, +2.95 K local ΔT, 13 exact pixels | Single operator-reviewed example with reported surface debris |
+| Local Matrice 4T flight | 1,239 thermal frames processed | Processing coverage |
+| DJI SDK wrapper vs. manufacturer CLI | 2,621,440 identical values | Eight public M4T and M30T samples under identical effective settings |
 
-![Public DJI Mavic 3T thermal image showing rows of solar panels](docs/assets/pv-array-thermal.png)
+The results page includes the full field views and a temperature transect from an external radiometric sample processed by PV Delta. [Figures, source settings and interpretation](docs/results.md)
 
-**Figure 3.** PV module rows captured by a DJI Mavic 3T in the CERTH public
-dataset. [Image credits and source](docs/assets/IMAGE-CREDITS.md)
+## Validation
 
-## Validation and scope
+Software checks cover flight geometry, candidate measurement, provenance, RGB transfer, review flows and export. The SDK/CLI comparison checks decoding agreement with the manufacturer’s executable. Field temperature accuracy, independent detection performance and physical module deduplication remain evaluation priorities. The reporting workflow uses IEC TS 62446-3 as a reference for inspection evidence. [Validation scope and reproducibility](docs/validation.md)
 
-| Check | Result |
-| --- | --- |
-| Local Matrice 4T flight processing | 1,239 thermal frames processed |
-| DJI SDK integration vs. manufacturer CLI | 2,621,440 identical temperature values across eight public M4T and M30T R-JPEG samples, using the same effective settings |
+## Installation and quick start
 
-The comparison measures agreement between two software paths. Automatic hotspot
-detection accuracy across sites, same-panel matching across captures and
-reflection assessment remain under evaluation. PV Delta is a research pilot
-for operator review. [IEC TS 62446-3:2017](https://webstore.iec.ch/en/publication/28628)
-informs the inspection evidence and reporting scope. Actual equipment,
-environmental and procedural requirements still need verification for each
-inspection before claiming conformity.
-[Public radiometric samples](https://huggingface.co/datasets/STRDrones/DJI) · [IEC evidence checklist](docs/method.md#6-iec-ts-62446-3-and-field-evidence)
-
-## Run PV Delta
-
-For a real inspection, install the DJI Thermal SDK and follow the
-[Windows setup and operator guide](docs/stage1-pilot.md). The application opens
-at **http://127.0.0.1:8765**.
+Install Python 3.10 or later and obtain the DJI Thermal SDK separately for native inspection. The Windows launcher looks for the SDK in the checkout at `sdk/tsdk-core/lib/windows/release_x64`. For another location, pass `-SdkLibrary` to both launcher commands.
 
 ```powershell
+py -3.12 -m venv .venv
+.venv\Scripts\python.exe -m pip install -e '.[dashboard,vision,storage]'
+.\scripts\Start-PvDelta.ps1 -CheckOnly
 .\scripts\Start-PvDelta.ps1 -BindAddress 127.0.0.1
 ```
 
-To explore the same measurement pipeline without a camera or SDK, run the
-separate Streamlit example. It uses generated temperatures with a known **+10 K**
-region so you can check the overview, row selector and candidate details.
+Open **http://127.0.0.1:8765**. [SDK path and setup](docs/stage1-pilot.md) · [Single-flight CLI](docs/stage1-cli.md) · [Batch scanning](docs/stage1-batch.md)
+
+<details>
+<summary>Run a reproducible demonstration without the SDK</summary>
+
+The separate demonstration injects a synthetic +10 K region with a known reference. It is intended for checking the interface and numerical workflow.
 
 ```bash
 python -m pip install -e ".[dashboard]"
 python -m streamlit run examples/synthetic_dashboard.py
 ```
 
-For automation, see the [CLI](docs/stage1-cli.md) and [batch guide](docs/stage1-batch.md).
-For development, see [local setup and tests](docs/development.md).
+</details>
+
+## Example use cases
+
+- **Flight preparation.** Estimate the thermal resolution and capture spacing needed for a target feature on a tilted PV array.
+- **Post-flight triage.** Prioritise thermal candidates for follow-up using native-pixel measurements and source views.
+- **Engineering reproducibility.** Recheck a measurement with its saved SDK settings and preserve the operator decision and supporting evidence.
+
+## Repository structure
+
+| Path | Contents |
+| --- | --- |
+| [src/pvdelta/](src/pvdelta/) | Acquisition, thermal decoding, geometry, measurement, review and storage |
+| [dashboard/](dashboard/) | Streamlit application |
+| [scripts/](scripts/) | Local launcher and inspection utilities |
+| [tests/](tests/) | Numerical, workflow and integration tests |
+| [docs/](docs/) | Methods, figures, workflows and operator guidance |
+
+## Limitations and development priorities
+
+Field conditions and camera settings affect interpretation. Reflections, shadows, partial masks and poor local RGB registration can leave a candidate unresolved. A processing count represents frames, while observations and provisional panel groups have their own denominators. Stable physical IDs require registration or site evidence. Future evaluation should measure both missed faults and false findings on independent, field-verified inspections. [Validation and remaining evidence](docs/validation.md)
+
+## Author, citation and license
+
+Created by **yusufzb**. Suggested software citation: yusufzb. *PV Delta*. Version 0.1.0.dev0. GitHub. Include the exact commit for reproducible work. [Tagged version](https://github.com/yusufzb/pvdelta/tree/v0.1.0.dev0)
+
+[MIT code license](LICENSE) · [Figure provenance and usage terms](docs/assets/IMAGE-CREDITS.md)

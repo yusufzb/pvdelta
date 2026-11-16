@@ -1,6 +1,13 @@
 # Image sources and reproduction
+## Figures 1 and 2 · PV Delta Streamlit screenshots
 
-## Figure 1 · PV Delta project flight
+Figure 1 is from the operator-supplied phone screenshot of the same review as
+Figure 3. The published crop excludes browser chrome and original source
+filenames. Figure 2 is an archived capture of the Advanced unassigned-evidence
+interface. The crop preserves the queue and its counts. Both PNG exports omit
+image metadata. No result, outline or interface element was redrawn.
+
+## Figure 3 · PV Delta project flight
 
 Project-owned DJI Matrice 4T capture selected by the operator from the Streamlit
 review. The publishing export preserves the complete operator-supplied thermal
@@ -11,7 +18,7 @@ pixels. The red locator is
 enlarged for legibility. The RGB locator is approximate because the local edge
 alignment check did not pass. Debris is the operator's site observation.
 
-## Figure 3 · Public UAV thermal image of PV modules
+## Figure 5 · Public UAV thermal image of PV modules
 
 Panagiotis Christakakis, Eleftheria-Maria Pechlivani and Periklis Dimou (2025),
 *Thermal PV Panel Detection and Fault Detection Dataset for UAV-Based Inspection*.
@@ -24,9 +31,9 @@ Source JPEG SHA-256:
 
 The published PNG preserves the decoded 640 × 512 RGB pixels. It was re-encoded
 without the original metadata. The source is a processed research image, so
-Figure 3 has no temperature scale.
+Figure 5 has no temperature scale.
 
-## Figure 2 · Temperature map and row profile
+## Figure 4 · Temperature map and row profile
 
 Source: STR Drones, [DJI dataset](https://huggingface.co/datasets/STRDrones/DJI)
 (MIT), [DJI_M4T_5.JPG](https://huggingface.co/datasets/STRDrones/DJI/blob/main/M4T/DJI_M4T_5.JPG).

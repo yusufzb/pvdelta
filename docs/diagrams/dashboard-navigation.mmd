@@ -1,0 +1,21 @@
+flowchart TD
+    entry{"Dashboard mode"}
+    entry --> basic["Basic · Start a new inspection"]
+    basic --> results["Open scan overview and candidate list"]
+    results --> paired["Review paired evidence · Figures 1 and 3"]
+    paired --> choice["OK / Not OK / Wait"]
+    entry --> plan["Advanced · Flight plan and Field checklist"]
+    plan --> scan["Radiometric scan and Panel boundaries"]
+    scan --> unassigned["Unassigned evidence · Figure 2"]
+    scan --> data["Local data & map and RGB quality"]
+    data --> panel["User review and Panel review (v2)"]
+    panel --> export["Export"]
+    data -.-> orthoview["Orthoview"]
+    class basic,plan input
+    class results,scan,data process
+    class entry,choice decision
+    class paired,unassigned,panel,export,orthoview output
+    classDef input fill:#d9f2ee,stroke:#17786e,color:#112e2b
+    classDef process fill:#e8eef8,stroke:#496684,color:#162b45
+    classDef decision fill:#fff1d2,stroke:#976529,color:#44301b
+    classDef output fill:#e7ebff,stroke:#6265a9,color:#28264e

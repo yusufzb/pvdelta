@@ -1,0 +1,20 @@
+flowchart TD
+    flight["Flight plan and field observations"] --> photos["Original radiometric JPEGs and optional RGB"]
+    photos --> index["Index and pair captured images"]
+    index --> sdk["Decode native temperatures with DJI SDK"]
+    sdk --> eligible{"Usable panel support?"}
+    eligible -->|Yes| measure["Fit local background and measure candidate regions"]
+    eligible -->|Unresolved evidence| queue["Unassigned thermal evidence"]
+    queue --> surface["Review boundaries or run a surface-assisted scan"]
+    surface -.->|Reassess with saved geometry| eligible
+    measure --> review["Review thermal, RGB and repeat-view evidence"]
+    review -->|OK / Not OK / Wait| store["Local DuckDB record and evidence export"]
+    store -.->|Optional Stage 2| registry["Reconcile with plant inventory"]
+    class flight,photos input
+    class index,sdk,measure,surface process
+    class eligible,review decision
+    class queue,store,registry output
+    classDef input fill:#d9f2ee,stroke:#17786e,color:#112e2b
+    classDef process fill:#e8eef8,stroke:#496684,color:#162b45
+    classDef decision fill:#fff1d2,stroke:#976529,color:#44301b
+    classDef output fill:#e7ebff,stroke:#6265a9,color:#28264e

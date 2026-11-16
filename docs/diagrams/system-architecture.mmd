@@ -1,0 +1,20 @@
+flowchart TD
+    ui["Streamlit · Basic and Advanced"] --> plan["Flight geometry and field checklist"]
+    ui --> scan["Index and scan orchestration"]
+    cli["CLI · Single flight or batch"] --> scan
+    scan --> sdk["DJI SDK wrapper and saved measurement profiles"]
+    scan --> geometry["Native module geometry and surface constraints"]
+    sdk --> models["Support partition and local thermal detector"]
+    geometry --> models
+    models --> db[("DuckDB inspection records")]
+    db --> review["Source previews, panel review and Folium map"]
+    review -->|Review decisions| db
+    db --> report["HTML, JSON and CSV evidence bundle"]
+    ui --> ortho["Experimental RGB and thermal orthoview"]
+    class ui,cli input
+    class plan,scan,sdk,geometry,models process
+    class db,review,report,ortho output
+    classDef input fill:#d9f2ee,stroke:#17786e,color:#112e2b
+    classDef process fill:#e8eef8,stroke:#496684,color:#162b45
+    classDef decision fill:#fff1d2,stroke:#976529,color:#44301b
+    classDef output fill:#e7ebff,stroke:#6265a9,color:#28264e
