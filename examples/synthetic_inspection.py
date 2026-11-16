@@ -12,11 +12,8 @@ from pvdelta.regions import ModuleAnnotation
 from pvdelta.report import write_stage1_report
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('output', type=Path, help='Directory for the inspection reports')
-    args = parser.parse_args()
-
+def synthetic_frame():
+    """Return the generated thermal grid and the two supplied module regions."""
     temperatures = np.full((64, 112), 30, dtype=np.float32)
     temperatures[26:33, 24:31] = 40
     source_hash = hashlib.sha256(temperatures.tobytes()).hexdigest()
@@ -26,6 +23,15 @@ def main():
         ModuleAnnotation('demo-01', ((8, 10), (48, 10), (48, 54), (8, 54))),
         ModuleAnnotation('demo-02', ((64, 10), (104, 10), (104, 54), (64, 54))),
     ]
+    return frame, modules
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('output', type=Path, help='Directory for the inspection reports')
+    args = parser.parse_args()
+
+    frame, modules = synthetic_frame()
     reports = analyze_annotations(frame, modules, direction='hot')
     artifacts = write_stage1_report(args.output, 'synthetic', frame, reports,
                                     settings={'source': 'generated', 'regions': 'supplied'})

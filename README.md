@@ -1,5 +1,7 @@
 # PV Delta
 
+![PV Delta illustrated cover. A warm region is highlighted on a solar array.](docs/assets/pvdelta-cover.svg)
+
 **Radiometric inspection of solar PV modules from DJI thermal imagery.**
 
 [![CI](https://github.com/yusufzb/pvdelta/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufzb/pvdelta/actions/workflows/ci.yml)
@@ -11,11 +13,23 @@ thermal anomaly candidates within module regions, and presents the evidence in
 a local Streamlit dashboard. It works without a plant asset register. Operators
 can review candidates alongside RGB imagery and export the inspection record.
 
-[Run the demo](#try-the-demo) · [Set up a real inspection](docs/stage1-pilot.md) · [Read the method](docs/method.md)
+[Open the Streamlit demo](#streamlit-demo) · [Try the CLI](#try-the-demo) · [Set up a real inspection](docs/stage1-pilot.md)
 
-![Synthetic temperature profile: a 40 °C hot region against a 30 °C local reference, giving a 10 K difference](docs/assets/synthetic-temperature-profile.svg)
+## Streamlit demo
 
-_An editable synthetic example. The graph shows one row of the generated temperature grid._
+![Illustrated Streamlit previews showing the overview and hot-region review using the synthetic demo](docs/assets/streamlit-demo-preview.svg)
+
+_Illustrated previews of the runnable synthetic dashboard._
+
+The **Overview** tab lets you explore temperatures one row at a time. **Review
+candidates** shows the position, temperature and local reference of the region
+the PV Delta pipeline found. The example uses generated data and runs without the
+DJI SDK.
+
+```bash
+python -m pip install -e ".[dashboard]"
+python -m streamlit run examples/synthetic_dashboard.py
+```
 
 ## What the pilot does
 
@@ -42,6 +56,8 @@ The expected result is a **+10 K** hot region. Open
 `out/demo/synthetic-overlay.svg` to see its location. The demo also writes CSV
 and JSONL. It uses generated temperatures and supplied module regions, so it
 runs without a drone, an SDK, or field imagery.
+
+![Synthetic temperature profile: a 40 °C hot region against a 30 °C local reference, giving a 10 K difference](docs/assets/synthetic-temperature-profile.svg)
 
 ## Run an inspection
 
