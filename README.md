@@ -11,7 +11,7 @@ local temperature differences within photovoltaic module regions. It presents
 the temperature, reference, image location and supporting evidence for each
 candidate in a local Streamlit dashboard. A plant inventory is optional.
 
-[Field case](#field-case-debris-reported) · [Workflow](#workflow) · [Radiometric example](#radiometric-example) · [Run PV Delta](#run-pv-delta)
+[Field case](#field-case-debris-reported) · [Workflow](#workflow) · [Detection method](docs/method.md) · [Radiometric example](#radiometric-example) · [Run PV Delta](#run-pv-delta)
 
 ## Field case · debris reported
 
@@ -49,10 +49,19 @@ flowchart TD
     inventory["CAD layout or panel register"] -.-> match
 ```
 
-**Stage 1** uses the native temperature grid to measure a candidate against its
-local reference. ΔT is the candidate temperature minus the reference temperature,
-reported in kelvin. The dashboard retains the original image coordinates and
-shows geographic estimates when supporting geometry is available.
+**Stage 1** measures temperature differences on the native DJI SDK grid. Within
+each eligible module interior, a robust local plane estimates the background.
+The detector thresholds the pixel-level temperature residuals and groups
+four-connected pixels into candidates. The reported ΔT is the median residual
+over the exact component. Display palette and box enlargement do not enter the
+calculation. The dashboard retains original image coordinates and shows
+geographic estimates when supporting geometry is available.
+
+$$
+\Delta T_C = \operatorname{median}_{(x,y)\in C}\left[T(x,y)-B_i(x,y)\right].
+$$
+
+[Radiometric assumptions, equations and screening settings](docs/method.md)
 
 **Stage 2** uses plant records to associate reviewed observations with physical
 panel IDs, rows, racks and strings. [Measurement profiles](docs/measurement-profiles.md) · [Evidence export](docs/inspection-export.md)
@@ -81,8 +90,11 @@ dataset. [Image credits and source](docs/assets/IMAGE-CREDITS.md)
 The comparison measures agreement between two software paths. Automatic hotspot
 detection accuracy across sites, same-panel matching across captures and
 reflection assessment remain under evaluation. PV Delta is a research pilot
-for operator review. IEC field compliance has not been established.
-[Public radiometric samples](https://huggingface.co/datasets/STRDrones/DJI)
+for operator review. [IEC TS 62446-3:2017](https://webstore.iec.ch/en/publication/28628)
+informs the inspection evidence and reporting scope. Actual equipment,
+environmental and procedural requirements still need verification for each
+inspection before claiming conformity.
+[Public radiometric samples](https://huggingface.co/datasets/STRDrones/DJI) · [IEC evidence checklist](docs/method.md#6-iec-ts-62446-3-and-field-evidence)
 
 ## Run PV Delta
 
