@@ -69,7 +69,7 @@ squares on retained reference pixels $R_i \subseteq S_i$.
 
 $$
 (a_i,b_i,c_i)=
-\underset{a,b,c}{\operatorname{argmin}}
+\underset{a,b,c}{\mathrm{arg\,min}}
 \sum_{(x,y)\in R_i}\left[T(x,y)-ax-by-c\right]^2 .
 $$
 
@@ -92,7 +92,7 @@ reference pixels and a minimum valid support fraction of 0.95. These are
 project screening settings. Changing them changes the detection tradeoff.
 
 $$
-\Delta T_C = \operatorname{median}_{(x,y)\in C}\left[T(x,y)-B_i(x,y)\right].
+\Delta T_C = \mathrm{median}_{(x,y)\in C}\left[T(x,y)-B_i(x,y)\right].
 $$
 
 The report preserves the exact component pixels, their bounding box, region

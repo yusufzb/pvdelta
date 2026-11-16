@@ -62,7 +62,7 @@ At capture planning, the flat-plane approximation starts from camera-to-plane ra
 Within eligible module support, the detector fits a robust local plane $B_i(x,y)$ to native temperatures. For an exact connected component $C$, it reports
 
 $$
-\Delta T_C = \operatorname{median}_{(x,y)\in C}\left[T(x,y)-B_i(x,y)\right].
+\Delta T_C = \mathrm{median}_{(x,y)\in C}\left[T(x,y)-B_i(x,y)\right].
 $$
 
 Here $T$ and $B_i$ are in °C and $\Delta T_C$ is in K. The exact pixel set, fitted background and camera settings determine the measurement. Display palettes and locator enlargement affect visual presentation. [Computational methodology](docs/methodology.md) · [Radiometric equations and field evidence](docs/method.md)
