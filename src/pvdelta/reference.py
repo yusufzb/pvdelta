@@ -23,6 +23,8 @@ class DeltaT:
 
 def erode(mask: np.ndarray, px: int = 1) -> np.ndarray:
     """Shrink a mask by ``px`` pixels (4-neighbourhood) to drop frame / mixed edge pixels."""
+    if mask.ndim != 2 or px < 0:
+        raise ValueError("mask must be two-dimensional and px non-negative")
     m = mask.astype(bool).copy()
     for _ in range(px):
         inner = m.copy()
@@ -37,8 +39,12 @@ def erode(mask: np.ndarray, px: int = 1) -> np.ndarray:
 
 
 def robust_median(t: np.ndarray, mask: np.ndarray, exclude: np.ndarray | None = None) -> tuple[float, int]:
-    sel = mask.astype(bool)
+    if t.ndim != 2 or mask.shape != t.shape:
+        raise ValueError("temperature and mask shapes must match")
+    sel = mask.astype(bool).copy()
     if exclude is not None:
+        if exclude.shape != t.shape:
+            raise ValueError("exclusion mask shape must match temperature")
         sel &= ~exclude.astype(bool)
     vals = t[sel]
     vals = vals[np.isfinite(vals)]
@@ -60,6 +66,10 @@ def delta_t_region(
     ``sign="hot"`` uses the region maximum, ``"cold"`` the minimum, ``"mean"`` the mean
     (appropriate for large-area anomalies such as a warm sub-string).
     """
+    if t.ndim != 2 or region.shape != t.shape or reference_mask.shape != t.shape:
+        raise ValueError("temperature and region/reference mask shapes must match")
+    if sign not in {"hot", "cold", "mean"}:
+        raise ValueError("sign must be hot, cold or mean")
     region = region.astype(bool)
     rvals = t[region]
     rvals = rvals[np.isfinite(rvals)]
@@ -78,5 +88,7 @@ def group_median_delta(values: dict[str, float]) -> dict[str, float]:
     """
     if not values:
         return {}
+    if not np.isfinite(list(values.values())).all():
+        raise ValueError("group temperatures must be finite")
     med = float(np.median(list(values.values())))
     return {k: v - med for k, v in values.items()}

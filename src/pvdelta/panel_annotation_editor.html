@@ -1,0 +1,88 @@
+<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Native panel reference editor</title>
+<style>
+body{background:#111b26;color:#eef3f9;font:15px system-ui;margin:12px}button,input,select{font:inherit;padding:7px;margin:3px}
+button{cursor:pointer}label{display:inline-block}#viewport{overflow:auto;max-height:560px;background:#070d14;border:1px solid #63758a}
+canvas{display:block;touch-action:none;cursor:crosshair}#error{color:#ffbd87;min-height:24px}small{color:#b8cadb}
+#reviewer{width:180px}#note,#empty{width:min(650px,85%)}#identity{overflow-wrap:anywhere;font-size:11px}
+</style><h2>Native panel reference editor</h2>
+<p>Draw every complete module with four ordered corners. Use Ignore for partial or ambiguous areas.
+No predictions are supplied. Zoom changes display size only; saved coordinates remain on the native grid.</p>
+<div><button id="previous">← Previous</button><select id="frame"></select><button id="next">Next →</button>
+<label>Zoom <select id="zoom"><option value="1">1×</option><option value="2" selected>2×</option><option value="3">3×</option></select></label></div>
+<div><label>Draw <select id="mode"><option value="panels">Complete module</option><option value="ignore">Ignore / partial</option></select></label>
+<button id="undo">Undo point / last shape</button><button id="delete">Delete selected shape</button><button id="cancel">Cancel points</button></div>
+<small>Click four corners around a module. Click a corner to select and drag it. Selected shape is yellow; modules cyan; ignore areas magenta.
+On a phone, use the scrollbars to move the zoomed image. Undo/delete and editing always invalidate completion.</small>
+<div id="error" role="status"></div><div id="viewport"><canvas id="canvas"></canvas></div>
+<p id="counts"></p><p id="identity"></p>
+<div><label>Reviewer <input id="reviewer" placeholder="Actual reviewer name"></label>
+<label><input type="checkbox" id="complete">I reviewed the entire frame; all complete modules and ignore areas are annotated</label></div>
+<div><label>Notes <input id="note"></label></div><div><label>If no complete modules, explain <input id="empty"></label></div>
+<p><button id="export">Export all frames (JSON)</button><label>Resume saved draft <input type="file" id="import" accept=".json"></label></p>
+<p><strong>Export before leaving this page or changing Streamlit controls.</strong> Work stays in this browser component until exported.
+Upload the JSON in Streamlit to validate and save a version. Incomplete frames remain unscored; completed work is a developer draft,
+never an independent review or thermal/fault authorisation.</p>
+<script>
+const PACK=__PVDELTA_PACK__;
+const $=id=>document.getElementById(id), canvas=$('canvas'), ctx=canvas.getContext('2d');
+const works=PACK.frames.map(f=>({source_sha256:f.source_sha256,native_temperature_sha256:f.native_temperature_sha256,
+native_width:f.native_width,native_height:f.native_height,display_png_sha256:f.display_png_sha256,
+panels:[],ignore:[],exhaustive:false,reviewer:'',note:'',empty_reason:''}));
+let index=0,points=[],selected=null,drag=null,zoom=2,bitmap=null,loadGeneration=0;
+function work(){return works[index]}
+function invalidate(){work().exhaustive=false;$('complete').checked=false}
+function error(message=''){$('error').textContent=message}
+function syncFields(){const w=work();w.reviewer=$('reviewer').value;w.note=$('note').value;w.empty_reason=$('empty').value;w.exhaustive=$('complete').checked}
+function point(event){const r=canvas.getBoundingClientRect();return [Math.max(0,Math.min(canvas.width,(event.clientX-r.left)*canvas.width/r.width)),
+Math.max(0,Math.min(canvas.height,(event.clientY-r.top)*canvas.height/r.height))].map(v=>Math.round(v*1000)/1000)}
+function convex(q){if(q.length!==4)return false;let signs=[],area=0;for(let i=0;i<4;i++){let a=q[i],b=q[(i+1)%4],c=q[(i+2)%4];
+let cross=(b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]);if(Math.abs(cross)<1e-7)return false;signs.push(Math.sign(cross));area+=a[0]*b[1]-a[1]*b[0]}
+return Math.abs(area)>1e-6 && signs.every(s=>s===signs[0])}
+function paint(){ctx.clearRect(0,0,canvas.width,canvas.height);if(bitmap)ctx.drawImage(bitmap,0,0);
+for(const type of ['panels','ignore'])for(const shape of work()[type]){const q=shape.polygon_native_xy,chosen=selected?.type===type&&selected?.shape===shape;
+ctx.strokeStyle=chosen?'#ffff55':type==='panels'?'#6deaff':'#ff77dd';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1.5/zoom;
+ctx.beginPath();q.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.closePath();ctx.stroke();
+for(const p of q){ctx.beginPath();ctx.arc(...p,3/zoom,0,Math.PI*2);ctx.fill()}
+ctx.font=`${11/zoom}px sans-serif`;ctx.fillText(shape.instance_id||shape.region_id,q[0][0]+4/zoom,q[0][1]+11/zoom)}
+ctx.fillStyle='#fff';for(const p of points){ctx.beginPath();ctx.arc(...p,3/zoom,0,Math.PI*2);ctx.fill()}
+$('counts').textContent=`${work().panels.length} drawn complete modules · ${work().ignore.length} ignore regions · ${points.length}/4 pending corners · ${work().exhaustive?'completion declared':'incomplete / unscored'}`}
+function resize(){canvas.style.width=`${canvas.width*zoom}px`;canvas.style.height=`${canvas.height*zoom}px`;paint()}
+function show(n,savePrevious=true){if(savePrevious)syncFields();index=Math.max(0,Math.min(works.length-1,n));points=[];selected=null;drag=null;error();const f=PACK.frames[index],w=work();
+canvas.width=f.native_width;canvas.height=f.native_height;bitmap=null;$('frame').value=index;
+$('previous').disabled=index===0;$('next').disabled=index===works.length-1;$('reviewer').value=w.reviewer;$('note').value=w.note;
+$('empty').value=w.empty_reason;$('complete').checked=w.exhaustive;
+$('identity').textContent=`${f.case_id} | ${f.source_file||''} | native ${f.native_width}×${f.native_height} | source SHA256 ${f.source_sha256}`;
+resize();const generation=++loadGeneration;let image=new Image();image.onload=()=>{if(generation===loadGeneration){bitmap=image;paint()}};
+image.onerror=()=>error('Native preview failed to load');image.src=f.image_data_url}
+PACK.frames.forEach((f,i)=>{let o=document.createElement('option');o.value=i;o.textContent=f.case_id;$('frame').appendChild(o)});
+$('previous').onclick=()=>show(index-1);$('next').onclick=()=>show(index+1);$('frame').onchange=e=>show(Number(e.target.value));
+$('zoom').onchange=e=>{zoom=Number(e.target.value);resize()};$('mode').onchange=()=>{points=[];selected=null;paint()};
+canvas.onpointerdown=e=>{e.preventDefault();if(!bitmap)return;error();let p=point(e);if(points.length===0){let nearest=null,distance=7/zoom;
+for(const type of ['panels','ignore'])for(const shape of work()[type])shape.polygon_native_xy.forEach((q,corner)=>{
+let d=Math.hypot(p[0]-q[0],p[1]-q[1]);if(d<distance){distance=d;nearest={type,shape,corner,original:q.slice()}}});
+if(nearest){selected=nearest;drag=nearest;canvas.setPointerCapture(e.pointerId);paint();return}}
+selected=null;points.push(p);if(points.length===4){if(!convex(points)){error('Corners must form a nonzero convex quad in boundary order.');points.pop()}
+else{const type=$('mode').value,key=type==='panels'?'instance_id':'region_id',prefix=type==='panels'?'P':'I';
+const number=1+Math.max(0,...work()[type].map(s=>Number(s[key].slice(1))||0));work()[type].push({[key]:prefix+String(number).padStart(4,'0'),polygon_native_xy:points});points=[];invalidate()}}paint()};
+canvas.onpointermove=e=>{if(!drag)return;drag.shape.polygon_native_xy[drag.corner]=point(e);invalidate();paint()};
+function endDrag(){if(drag&&!convex(drag.shape.polygon_native_xy)){drag.shape.polygon_native_xy[drag.corner]=drag.original;error('Invalid corner move reverted.')}
+drag=null;paint()}
+canvas.onpointerup=endDrag;canvas.onpointercancel=endDrag;
+$('undo').onclick=()=>{if(points.length)points.pop();else{work()[$('mode').value].pop();invalidate();selected=null}paint()};
+$('cancel').onclick=()=>{points=[];error();paint()};$('delete').onclick=()=>{if(selected){let list=work()[selected.type];list.splice(list.indexOf(selected.shape),1);selected=null;invalidate();paint()}};
+$('complete').onchange=()=>{syncFields();paint()};
+function exportDocument(){syncFields();return {schema:'pvdelta.panel-annotation-work/v1',pack_token:PACK.pack_token,frames:works}}
+$('export').onclick=()=>{if(points.length){error('Finish or cancel the pending corners before exporting.');return}
+const document=exportDocument();const blob=new Blob([JSON.stringify(document,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob);
+const a=window.document.createElement('a');a.href=url;a.download='panel-annotation-work.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);error('Exported. Upload this JSON in Streamlit to validate/save.');};
+$('import').onchange=async e=>{try{const file=e.target.files[0];if(!file)return;let d=JSON.parse(await file.text());
+if(d.schema!=='pvdelta.panel-annotation-work/v1'||d.pack_token!==PACK.pack_token||!Array.isArray(d.frames)||d.frames.length!==works.length)throw Error('Saved draft belongs to another pack');
+const proposed=PACK.frames.map(f=>{let matches=d.frames.filter(w=>w.source_sha256===f.source_sha256);if(matches.length!==1)throw Error('Missing/duplicate source');const w=matches[0];
+for(const k of ['native_temperature_sha256','display_png_sha256','native_width','native_height'])if(w[k]!==f[k])throw Error('Native source changed');
+if(!Array.isArray(w.panels)||!Array.isArray(w.ignore)||typeof w.exhaustive!=='boolean'||['reviewer','note','empty_reason'].some(k=>typeof w[k]!=='string'))throw Error('Invalid draft fields');
+for(const type of ['panels','ignore']){const key=type==='panels'?'instance_id':'region_id',seen=new Set();for(const s of w[type]){if(typeof s[key]!=='string'||!s[key]||seen.has(s[key])||!Array.isArray(s.polygon_native_xy)||s.polygon_native_xy.some(p=>!Array.isArray(p)||p.length!==2||!p.every(Number.isFinite)||p[0]<0||p[1]<0||p[0]>f.native_width||p[1]>f.native_height)||!convex(s.polygon_native_xy))throw Error('Invalid shape');seen.add(s[key])}}return w});
+for(let i=0;i<works.length;i++)works[i]=proposed[i];show(index,false);error('Draft resumed. Python validates bounds, overlaps and completion on upload.');
+}catch(exc){error(exc.message)}finally{e.target.value=''}};
+show(0,false);
+</script></html>

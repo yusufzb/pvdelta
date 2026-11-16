@@ -1,4 +1,4 @@
-"""pvdelta — radiometric ΔT inspection of PV modules from DJI R-JPEG (IEC TS 62446-3)."""
+"""pvdelta — exploratory radiometric PV temperature-anomaly analysis."""
 
 __version__ = "0.1.0.dev0"
 

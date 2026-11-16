@@ -1,0 +1,53 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Source-only junction references</title>
+<style>body{font:16px system-ui;background:#10151c;color:#e6edf5;margin:18px}button,select,input{font:inherit;padding:6px;margin:3px}button{cursor:pointer}header{position:sticky;top:0;background:#10151c;z-index:2;padding:8px}main{display:grid;grid-template-columns:1fr 1fr;gap:14px}.viewport{height:64vh;overflow:auto;border:1px solid #697386}svg{display:block;cursor:crosshair;max-width:none}p{max-width:1100px}#message{color:#ffcb75}@media(max-width:800px){main{grid-template-columns:1fr}.viewport{height:45vh}}</style>
+<h1>Source-only junction references</h1>
+<p>Click the <strong>same physical panel-frame junction</strong> in both original pixel grids. Use12 distinct, well-spaced junctions per pair. No detector predictions or fitted overlays are shown. Thermal brightness is structural context, not a temperature reading. Use Unclear if you cannot establish correspondence. Keep this HTML together with its assets folder.</p>
+<header><button id="prev">Previous pair</button><select id="pair"></select><button id="next">Next pair</button>
+<input id="reviewer" placeholder="Actual reviewer" aria-label="Reviewer"><br>
+<label>Junction <select id="slot"></select></label><span id="role"></span>
+<button id="observed">Mark observed</button><button id="unclear">Unclear</button><button id="reset">Clear this slot</button>
+<button id="download">Export reference JSON</button><label>Resume <input type="file" id="resume" accept="application/json"></label>
+<div id="progress"></div><div id="message" role="status"></div></header>
+<main><section><h2 id="nativeName"></h2><label>Zoom <select id="nativeZoom"><option>1</option><option selected>2</option><option>4</option><option>8</option></select></label><div class="viewport"><svg id="native" xmlns="http://www.w3.org/2000/svg"></svg></div></section>
+<section><h2 id="rgbName"></h2><label>Zoom <select id="rgbZoom"><option selected>1</option><option>2</option><option>4</option><option>8</option></select></label><div class="viewport"><svg id="rgb" xmlns="http://www.w3.org/2000/svg"></svg></div></section></main>
+<p>Roles are fixed before collection:8 fit +4 check. Spread BOTH roles across the table; check points on one line cannot validate a two-dimensional transform. Do not move or discard points to improve a fitted score. Export retains unfinished and unclear slots. These references do not authorise temperature-mask transfer, panel IDs, fault decisions or glare clearance.</p>
+<script>
+const PACK=__PACK_JSON__,IMAGES=__IMAGES_JSON__;
+const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg';
+const storage='pvdelta-junction-reference-'+PACK.pack_id;
+let work={schema:'pvdelta.junction-reference-work/v1',pack_id:PACK.pack_id,reviewer:'',frames:PACK.frames.map(f=>({pair_id:f.pair_id,pair:f.pair,points:f.slots.map(s=>({...s,native_xy:null,rgb_xy:null,status:'unreviewed'}))}))};
+let pi=0,si=0;
+function check(d){
+ if(!d||d.schema!==work.schema||d.pack_id!==PACK.pack_id||!Array.isArray(d.frames)||d.frames.length!==PACK.frames.length||typeof d.reviewer!=='string')throw Error('Wrong source pack');
+ d.frames.forEach((f,i)=>{let ref=PACK.frames[i];if(f.pair_id!==ref.pair_id||JSON.stringify(f.pair)!==JSON.stringify(ref.pair)||!Array.isArray(f.points)||f.points.length!==12)throw Error('Changed source pair');
+ f.points.forEach((p,j)=>{let s=ref.slots[j];if(p.control_id!==s.control_id||p.role!==s.role||!['unreviewed','observed','unclear'].includes(p.status))throw Error('Changed fixed slot or role');
+ for(let [k,shape]of[['native_xy',ref.pair.native_shape],['rgb_xy',ref.pair.rgb_shape]]){let v=p[k];if(v===null&&p.status!=='observed')continue;if(!Array.isArray(v)||v.length!==2||!v.every(Number.isFinite)||v[0]<0||v[1]<0||v[0]>=shape[1]||v[1]>=shape[0])throw Error('Invalid source coordinates');}});});return d;
+}
+try{let saved=localStorage.getItem(storage);if(saved)work=check(JSON.parse(saved));}catch(e){$('message').textContent='Local resume unavailable. Export JSON before leaving.';}
+function persist(){try{localStorage.setItem(storage,JSON.stringify(work));}catch(e){$('message').textContent='Local storage unavailable: export JSON before closing.';}}
+PACK.frames.forEach((f,i)=>$('pair').add(new Option(f.pair_id+' · '+f.thermal_file,i)));
+PACK.frames[0].slots.forEach((p,i)=>$('slot').add(new Option(p.control_id,i)));
+$('reviewer').value=work.reviewer;
+function node(tag,attrs){let n=document.createElementNS(NS,tag);for(let[k,v]of Object.entries(attrs))n.setAttribute(k,v);return n;}
+function draw(sensor){let key=sensor==='native'?'native_xy':'rgb_xy',shape=PACK.frames[pi].pair[sensor==='native'?'native_shape':'rgb_shape'];let [h,w]=shape,svg=$(sensor),zoom=Number($(sensor+'Zoom').value),scale=(sensor==='native'?1:640/w)*zoom;
+ svg.replaceChildren();svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.setAttribute('width',w*scale);svg.setAttribute('height',h*scale);
+ svg.append(node('image',{href:IMAGES[pi][sensor==='native'?'thermal':'rgb'],width:w,height:h}));
+ work.frames[pi].points.forEach((p,i)=>{if(!p[key])return;let[x,y]=p[key],r=4/scale;let color=i===si?'#ffce49':p.status==='observed'?'#4cffc0':'#fff';svg.append(node('circle',{cx:x,cy:y,r,fill:'none',stroke:color,'stroke-width':2/scale}));let t=node('text',{x:x+6/scale,y:y-5/scale,fill:color,'font-size':14/scale,stroke:'#000','stroke-width':.3/scale});t.textContent=p.control_id;svg.append(t);});
+}
+function render(){let f=PACK.frames[pi];$('pair').value=String(pi);$('slot').value=String(si);$('nativeName').textContent=f.thermal_file;$('rgbName').textContent=f.rgb_file;
+ $('role').textContent='Fixed role: '+f.slots[si].role+' · '+work.frames[pi].points[si].status;
+ $('prev').disabled=pi===0;$('next').disabled=pi===PACK.frames.length-1;
+ let done=work.frames.flatMap(f=>f.points).filter(p=>p.status==='observed').length;
+ $('progress').textContent=`${done}/${12*PACK.frames.length} observed slots. Missing or unclear points remain unresolved.`;draw('native');draw('rgb');}
+for(let sensor of ['native','rgb']){$(sensor).addEventListener('click',e=>{let svg=$(sensor),rect=svg.getBoundingClientRect(),shape=PACK.frames[pi].pair[sensor==='native'?'native_shape':'rgb_shape'];let x=(e.clientX-rect.left)*shape[1]/rect.width,y=(e.clientY-rect.top)*shape[0]/rect.height;
+ if(x<0||y<0||x>=shape[1]||y>=shape[0])return;let p=work.frames[pi].points[si];p[sensor==='native'?'native_xy':'rgb_xy']=[x,y];p.status='unreviewed';persist();render();});$(sensor+'Zoom').onchange=render;}
+$('pair').onchange=()=>{pi=Number($('pair').value);si=0;render();};$('slot').onchange=()=>{si=Number($('slot').value);render();};
+$('prev').onclick=()=>{pi=Math.max(0,pi-1);si=0;render();};$('next').onclick=()=>{pi=Math.min(PACK.frames.length-1,pi+1);si=0;render();};
+$('reviewer').oninput=()=>{work.reviewer=$('reviewer').value;persist();};
+$('observed').onclick=()=>{let p=work.frames[pi].points[si];if(!work.reviewer.trim()||!p.native_xy||!p.rgb_xy){$('message').textContent='Reviewer and both source coordinates required.';return;}p.status='observed';$('message').textContent='Source observation saved. This is not a fitted registration.';persist();si=Math.min(11,si+1);render();};
+$('unclear').onclick=()=>{work.frames[pi].points[si].status='unclear';persist();render();};
+$('reset').onclick=()=>{work.frames[pi].points[si]={...PACK.frames[pi].slots[si],native_xy:null,rgb_xy:null,status:'unreviewed'};persist();render();};
+$('download').onclick=()=>{work.reviewer=$('reviewer').value;if(!work.reviewer.trim()){$('message').textContent='Enter actual reviewer before export.';return;}let blob=new Blob([JSON.stringify(work,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pvdelta-junction-references.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
+$('resume').onchange=async e=>{try{let file=e.target.files[0];if(!file)return;if(file.size>2*1024*1024)throw Error('Reference JSON is too large');work=check(JSON.parse(await file.text()));$('reviewer').value=work.reviewer;persist();render();$('message').textContent='Matching source references resumed.';}catch(err){$('message').textContent='Resume rejected: '+err.message;}};
+render();
+</script></html>

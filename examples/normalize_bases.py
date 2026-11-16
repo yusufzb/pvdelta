@@ -19,4 +19,7 @@ for basis, value in n.per_basis.items():
 print("flags:", n.flags or "none")
 
 c = classify(Pattern.SUBSTRING, n.delta_ref_k)
-print(f"CoA {c.coa} ({c.pattern.value}) provisional={c.provisional} — {c.rule_source}")
+print(
+    f"verified CoA={c.coa}, provisional candidate={c.candidate_coa} "
+    f"({c.pattern.value}) — {c.rule_source}"
+)

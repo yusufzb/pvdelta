@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pvdelta"
 version = "0.1.0.dev0"
-description = "Radiometric ΔT inspection of PV modules from DJI R-JPEG, aligned with IEC TS 62446-3"
+description = "Exploratory radiometric temperature-anomaly analysis of PV modules from DJI R-JPEG"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -21,11 +21,27 @@ classifiers = [
 ]
 dependencies = ["numpy>=1.24"]
 
+[project.scripts]
+pvdelta = "pvdelta.cli:main"
+
 [project.optional-dependencies]
 dev = ["pytest>=7", "ruff>=0.4"]
+dashboard = [
+  "streamlit>=1.38",
+  "pillow>=10",
+  "duckdb>=1.1",
+  "pytz>=2024.1",
+  "folium>=0.17",
+  "streamlit-folium>=0.23",
+]
+storage = ["duckdb>=1.1", "pytz>=2024.1"]
+vision = ["opencv-python-headless>=4.8"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+pvdelta = ["camera_db.json", "panel_annotation_editor.html", "region_annotation_editor.html", "junction_reference_editor.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

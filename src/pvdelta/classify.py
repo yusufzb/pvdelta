@@ -15,9 +15,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from math import isfinite
 
 
 class Pattern(str, Enum):
+    UNKNOWN = "unknown"
     NONE = "none"
     HOT_CELL = "hot_cell"
     MULTI_HOT_CELL = "multi_hot_cell"
@@ -74,8 +76,8 @@ RULES: dict[Pattern, Rule] = {
                               "IEA-PVPS T13 2018: delamination appears colder; CoA provisional", False),
 }
 
-# Minimum |ΔT| to call something an anomaly at all. IEA-PVPS T13 (2018) cites ≥ 2.5 K as
-# significant; below that, measurement uncertainty dominates. Not an IEC class boundary.
+# Exploratory candidate threshold carried from the research notes. Its source wording and
+# applicability remain unverified; it is not an IEC class boundary.
 DETECTION_THRESHOLD_K = 2.5
 
 # Industry convention — NOT IEC. Reported in a separate column.
@@ -86,7 +88,8 @@ INDUSTRY_BINS = {
 
 @dataclass(frozen=True)
 class Classification:
-    coa: int
+    coa: int | None
+    candidate_coa: int | None
     pattern: Pattern
     cause: Cause
     delta_ref_k: float | None
@@ -96,32 +99,49 @@ class Classification:
 
 
 def classify(pattern: Pattern, delta_ref_k: float | None, cause: Cause = Cause.UNKNOWN) -> Classification:
-    """Assign a CoA from pattern first, normalized ΔT second.
+    """Calculate a provisional candidate CoA from pattern and normalized ΔT.
 
-    Hot cells under soiling / droppings / shadow are real heating: they keep their CoA and get a
-    cause tag so the action becomes 'clean' instead of 'replace'.
+    Unverified rules never populate the official ``coa`` field. External-cause tags remain
+    separate from the observed thermal pattern.
     """
+    if not isinstance(pattern, Pattern) or not isinstance(cause, Cause):
+        raise TypeError("pattern and cause must be known enum values")
+    if delta_ref_k is not None and not isfinite(delta_ref_k):
+        raise ValueError("normalized delta must be finite")
+    if pattern in (Pattern.HOT_CELL, Pattern.MULTI_HOT_CELL, Pattern.POINT_HOTSPOT,
+                   Pattern.SUBSTRING, Pattern.MODULE_OPEN, Pattern.STRING_OFFLINE,
+                   Pattern.JUNCTION_BOX) and delta_ref_k is not None and delta_ref_k < 0:
+        raise ValueError("hot pattern cannot have a negative delta")
+    if pattern is Pattern.COLD_REGION and delta_ref_k is not None and delta_ref_k > 0:
+        raise ValueError("cold pattern cannot have a positive delta")
     if pattern is Pattern.NONE:
-        return Classification(1, pattern, cause, delta_ref_k, "no anomaly", False)
+        return Classification(1, 1, pattern, cause, delta_ref_k, "no anomaly", False)
+    if pattern is Pattern.UNKNOWN:
+        return Classification(None, None, pattern, cause, delta_ref_k,
+                              "pattern has not been established", True,
+                              "manual pattern review required")
 
     rule = RULES[pattern]
 
     if pattern is not Pattern.BROKEN_GLASS:
         if delta_ref_k is None:
-            return Classification(2, pattern, cause, None, rule.source, True,
-                                  "ΔT not normalizable; CoA from pattern only")
+            return Classification(None, None, pattern, cause, None, rule.source, True,
+                                  "ΔT not normalizable; manual review required")
         if abs(delta_ref_k) < DETECTION_THRESHOLD_K:
-            return Classification(1, pattern, cause, delta_ref_k, "below detection threshold", False,
+            return Classification(None, 1, pattern, cause, delta_ref_k,
+                                  "exploratory threshold", True,
                                   f"|ΔT| < {DETECTION_THRESHOLD_K} K")
 
     coa = rule.coa_below
-    if rule.threshold_k is not None and delta_ref_k is not None and delta_ref_k >= rule.threshold_k:
+    if rule.threshold_k is not None and delta_ref_k is not None and delta_ref_k > rule.threshold_k:
         coa = rule.coa_at_or_above
 
     note = ""
     if cause in (Cause.SOILING, Cause.BIRD_DROPPING, Cause.SHADOW, Cause.VEGETATION):
         note = "external cause: clean / trim and re-inspect before replacement"
-    return Classification(coa, pattern, cause, delta_ref_k, rule.source, not rule.verified, note)
+    verified_coa = coa if rule.verified else None
+    return Classification(verified_coa, coa, pattern, cause, delta_ref_k,
+                          rule.source, not rule.verified, note)
 
 
 def industry_bin(delta_k: float, scheme: str = "raptor_maps_hotspot") -> str:

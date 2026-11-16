@@ -18,7 +18,7 @@ original radiometric image
 
 An original radiometric thermal image is the primary input. RGB, irradiance, camera pose and panel inventories are not mandatory inputs to the analysis core. Each optional input enables a particular capability; missing data is recorded explicitly.
 
-Analysis uses the native radiometric dimensions read from each frame. Display super-resolution and orthomosaic blending are not measurement grids. Keep masks and temperature statistics in the original thermal pixel coordinates.
+Analysis uses the native radiometric dimensions read from each frame. Display super-resolution and orthomosaic blending are not measurement grids. Keep masks and temperature statistics in the original thermal pixel coordinates. For DJI R-JPEG, the SDK `processed_rgb()` view is the native-grid display companion to the temperature raster; the embedded high-resolution JPEG remains a presentation product until a separate mapping is validated.
 
 Initially, manually annotated module polygons delimit the search area. The detector must produce anomaly candidates itself; supplying a manual anomaly mask is only a measurement example, not a detection experiment. Local references exclude candidate regions when enough valid reference pixels remain. Whole-module heating needs a separate neighbouring-module comparison; the module's own median can hide it.
 

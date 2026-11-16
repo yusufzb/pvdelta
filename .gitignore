@@ -41,6 +41,8 @@ libv_list.ini
 *.gpkg
 *.npy
 *.npz
+*.duckdb
+*.duckdb.wal
 
 # --- Python ---
 __pycache__/
@@ -52,12 +54,19 @@ dist/
 .venv/
 venv/
 .pytest_cache/
+/.pytest-*/
 .ruff_cache/
 .mypy_cache/
 .coverage
 htmlcov/
+/.test-tmp/
+/.dashboard-test.*
 
 # --- Editors / OS ---
+/.agents/
+/.claude/
+/.codex/
+/.cursor/
 .vscode/
 .idea/
 .DS_Store

@@ -25,6 +25,13 @@ def test_point_fault_below_60_percent_is_refused():
     assert any("below IEC minimum" in f for f in n.flags)
 
 
+def test_area_fault_below_minimum_is_not_normalized():
+    n = normalize(5.0, [irradiance(550)], Extent.AREA)
+    assert n.delta_meas_k == 5.0
+    assert n.delta_ref_k is None
+    assert n.per_basis["poa_pyranometer"] is None
+
+
 def test_string_current_basis():
     n = normalize(4.0, [string_current(8.5, 10.0)], Extent.AREA)
     assert n.primary == "string_current"

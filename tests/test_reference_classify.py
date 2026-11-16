@@ -40,16 +40,18 @@ def test_group_median_delta():
 
 
 def test_classify_pattern_first():
-    assert classify(Pattern.HOT_CELL, 25.0).coa == 2
-    assert classify(Pattern.HOT_CELL, 45.0).coa == 3
-    assert classify(Pattern.BROKEN_GLASS, 0.0).coa == 3
-    assert classify(Pattern.SUBSTRING, 1.0).coa == 1
+    assert classify(Pattern.HOT_CELL, 25.0).candidate_coa == 2
+    assert classify(Pattern.HOT_CELL, 45.0).candidate_coa == 3
+    assert classify(Pattern.BROKEN_GLASS, 0.0).candidate_coa == 3
+    assert classify(Pattern.SUBSTRING, 1.0).candidate_coa == 1
+    assert classify(Pattern.HOT_CELL, 25.0).coa is None
     assert classify(Pattern.NONE, None).coa == 1
+    assert classify(Pattern.UNKNOWN, None).coa is None
 
 
 def test_external_cause_keeps_class():
     c = classify(Pattern.HOT_CELL, 18.0, Cause.BIRD_DROPPING)
-    assert c.coa == 2
+    assert c.candidate_coa == 2
     assert "external cause" in c.note
 
 
